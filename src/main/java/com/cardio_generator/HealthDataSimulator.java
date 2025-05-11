@@ -3,19 +3,16 @@ package com.cardio_generator;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-
 import com.cardio_generator.generators.AlertGenerator;
-
 import com.cardio_generator.generators.BloodPressureDataGenerator;
 import com.cardio_generator.generators.BloodSaturationDataGenerator;
 import com.cardio_generator.generators.BloodLevelsDataGenerator;
 import com.cardio_generator.generators.ECGDataGenerator;
 import com.cardio_generator.outputs.ConsoleOutputStrategy;
-import com.cardio_generator.outputs.fileOutputStrategy;
+import com.cardio_generator.outputs.FileOutputStrategy;
 import com.cardio_generator.outputs.OutputStrategy;
 import com.cardio_generator.outputs.TcpOutputStrategy;
 import com.cardio_generator.outputs.WebSocketOutputStrategy;
-
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
@@ -31,6 +28,7 @@ public class HealthDataSimulator {
     private static ScheduledExecutorService scheduler;
     private static OutputStrategy outputStrategy = new ConsoleOutputStrategy(); // Default output strategy
     private static final Random random = new Random();
+    private static int shutdownAfterSeconds = 20;
 
     public static void main(String[] args) throws IOException {
 
@@ -42,6 +40,24 @@ public class HealthDataSimulator {
         Collections.shuffle(patientIds); // Randomize the order of patient IDs
 
         scheduleTasksForPatients(patientIds);
+
+        // Schedule shutdown after a certain time
+        Executors.newSingleThreadScheduledExecutor().schedule(() -> {
+            System.out.println("Stopping simulation after " + shutdownAfterSeconds + " seconds.");
+            scheduler.shutdown();
+            try {
+                if (!scheduler.awaitTermination(10, TimeUnit.SECONDS)) {
+                    System.out.println("Forcing shutdown...");
+                    scheduler.shutdownNow();
+                } else {
+                    System.out.println("Simulation ended gracefully.");
+                }
+            } catch (InterruptedException e) {
+                System.err.println("Shutdown interrupted. Forcing shutdown...");
+                scheduler.shutdownNow();
+                Thread.currentThread().interrupt();
+            }
+        }, shutdownAfterSeconds, TimeUnit.SECONDS);
     }
 
     private static void parseArguments(String[] args) throws IOException {
@@ -56,8 +72,7 @@ public class HealthDataSimulator {
                         try {
                             patientCount = Integer.parseInt(args[++i]);
                         } catch (NumberFormatException e) {
-                            System.err
-                                    .println("Error: Invalid number of patients. Using default value: " + patientCount);
+                            System.err.println("Error: Invalid number of patients. Using default value: " + patientCount);
                         }
                     }
                     break;
@@ -72,21 +87,18 @@ public class HealthDataSimulator {
                             if (!Files.exists(outputPath)) {
                                 Files.createDirectories(outputPath);
                             }
-                            outputStrategy = new fileOutputStrategy(baseDirectory);
+                            outputStrategy = new FileOutputStrategy(baseDirectory);
                         } else if (outputArg.startsWith("websocket:")) {
                             try {
                                 int port = Integer.parseInt(outputArg.substring(10));
-                                // Initialize your WebSocket output strategy here
                                 outputStrategy = new WebSocketOutputStrategy(port);
                                 System.out.println("WebSocket output will be on port: " + port);
                             } catch (NumberFormatException e) {
-                                System.err.println(
-                                        "Invalid port for WebSocket output. Please specify a valid port number.");
+                                System.err.println("Invalid port for WebSocket output. Please specify a valid port number.");
                             }
                         } else if (outputArg.startsWith("tcp:")) {
                             try {
                                 int port = Integer.parseInt(outputArg.substring(4));
-                                // Initialize your TCP socket output strategy here
                                 outputStrategy = new TcpOutputStrategy(port);
                                 System.out.println("TCP socket output will be on port: " + port);
                             } catch (NumberFormatException e) {
@@ -109,8 +121,7 @@ public class HealthDataSimulator {
         System.out.println("Usage: java HealthDataSimulator [options]");
         System.out.println("Options:");
         System.out.println("  -h                       Show help and exit.");
-        System.out.println(
-                "  --patient-count <count>  Specify the number of patients to simulate data for (default: 50).");
+        System.out.println("  --patient-count <count>  Specify the number of patients to simulate data for (default: 50).");
         System.out.println("  --output <type>          Define the output method. Options are:");
         System.out.println("                             'console' for console output,");
         System.out.println("                             'file:<directory>' for file output,");
@@ -118,8 +129,7 @@ public class HealthDataSimulator {
         System.out.println("                             'tcp:<port>' for TCP socket output.");
         System.out.println("Example:");
         System.out.println("  java HealthDataSimulator --patient-count 100 --output websocket:8080");
-        System.out.println(
-                "  This command simulates data for 100 patients and sends the output to WebSocket clients connected to port 8080.");
+        System.out.println("  This command simulates data for 100 patients and sends the output to WebSocket clients connected to port 8080.");
     }
 
     private static List<Integer> initializePatientIds(int patientCount) {
@@ -138,11 +148,30 @@ public class HealthDataSimulator {
         AlertGenerator alertGenerator = new AlertGenerator(patientCount);
 
         for (int patientId : patientIds) {
-            scheduleTask(() -> ecgDataGenerator.generate(patientId, outputStrategy), 1, TimeUnit.SECONDS);
-            scheduleTask(() -> bloodSaturationDataGenerator.generate(patientId, outputStrategy), 1, TimeUnit.SECONDS);
-            scheduleTask(() -> bloodPressureDataGenerator.generate(patientId, outputStrategy), 1, TimeUnit.MINUTES);
-            scheduleTask(() -> bloodLevelsDataGenerator.generate(patientId, outputStrategy), 2, TimeUnit.MINUTES);
-            scheduleTask(() -> alertGenerator.generate(patientId, outputStrategy), 20, TimeUnit.SECONDS);
+            scheduleTask(() -> {
+                System.out.println("Generating ECG data for patient " + patientId);
+                ecgDataGenerator.generate(patientId, outputStrategy);
+            }, 1, TimeUnit.SECONDS);
+
+            scheduleTask(() -> {
+                System.out.println("Generating Blood Saturation data for patient " + patientId);
+                bloodSaturationDataGenerator.generate(patientId, outputStrategy);
+            }, 1, TimeUnit.SECONDS);
+
+            scheduleTask(() -> {
+                System.out.println("Generating Blood Pressure data for patient " + patientId);
+                bloodPressureDataGenerator.generate(patientId, outputStrategy);
+            }, 1, TimeUnit.MINUTES);
+
+            scheduleTask(() -> {
+                System.out.println("Generating Blood Levels data for patient " + patientId);
+                bloodLevelsDataGenerator.generate(patientId, outputStrategy);
+            }, 2, TimeUnit.MINUTES);
+
+            scheduleTask(() -> {
+                System.out.println("Generating Alert for patient " + patientId);
+                alertGenerator.generate(patientId, outputStrategy);
+            }, 20, TimeUnit.SECONDS);
         }
     }
 
