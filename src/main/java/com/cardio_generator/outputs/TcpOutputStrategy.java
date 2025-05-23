@@ -6,11 +6,19 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.concurrent.Executors;
 
+/**
+ * The {@code TcpOutputStrategy} class is outputting patient record through TCP, using {@code output}.
+ */
+
 public class TcpOutputStrategy implements OutputStrategy {
 
     private ServerSocket serverSocket;
     private Socket clientSocket;
     private PrintWriter out;
+    /**
+     * Functrion outputs data through TCP
+     * @param port is the port used for TCP
+     */
 
     public TcpOutputStrategy(int port) {
         try {
@@ -31,6 +39,14 @@ public class TcpOutputStrategy implements OutputStrategy {
             e.printStackTrace();
         }
     }
+    /**
+     * Function outputs data for the patient through TCP
+     * 
+     * @param patientID is the patient ID
+     * @param timestamp is the timestamp  of the record
+     * @param label is the label of the data
+     * @param data is the patient data
+     */
 
     @Override
     public void output(int patientId, long timestamp, String label, String data) {
