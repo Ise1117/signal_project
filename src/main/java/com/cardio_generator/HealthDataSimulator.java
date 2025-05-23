@@ -22,6 +22,12 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 
+/**
+ *  the {@code HealthDataSimulator} class is responsible for simulating patient records ,
+ * using{@link ECGDataGenerator}, {@link BloodSaturationDataGenerator}, {@link BloodPressureDataGenerator},
+ * {@link BloodLevelsDataGenerator} and {@link AlertGenerator}. It also prints the generated data.
+ */
+
 public class HealthDataSimulator {
 
     private static int patientCount = 50; // Default number of patients
@@ -50,7 +56,7 @@ public class HealthDataSimulator {
                     System.out.println("Forcing shutdown...");
                     scheduler.shutdownNow();
                 } else {
-                    System.out.println("Simulation ended gracefully.");
+                    System.out.println("Simulation ended.");
                 }
             } catch (InterruptedException e) {
                 System.err.println("Shutdown interrupted. Forcing shutdown...");
