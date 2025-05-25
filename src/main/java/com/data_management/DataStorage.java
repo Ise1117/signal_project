@@ -16,15 +16,25 @@ import com.data_management.FileDataReader;
  */
 public class DataStorage {
     private Map<Integer, Patient> patientMap; // Stores patient objects indexed by their unique patient ID.
-    private DataReader reader;
+    private static volatile DataStorage instance;
 
     /**
      * Constructs a new instance of DataStorage, initializing the underlying storage
      * structure.
      */
-    public DataStorage(DataReader reader) {
-        this.reader = reader;
+    public DataStorage() {
         this.patientMap = new HashMap<>();
+    }
+
+    public static DataStorage getInstance() {
+        if (instance == null) {
+            synchronized (DataStorage.class) {
+                if (instance == null) {
+                    instance = new DataStorage();
+                }
+            }
+        }
+        return instance;
     }
 
     /**
@@ -69,7 +79,7 @@ public class DataStorage {
         }
         return new ArrayList<>(); // return an empty list if no patient is found
     }
-
+    
     /**
      * Retrieves a collection of all patients stored in the data storage.
      *
@@ -78,6 +88,11 @@ public class DataStorage {
     public List<Patient> getAllPatients() {
         return new ArrayList<>(patientMap.values());
     }
+    
+    public Patient getPatient(int patientId) {
+        return patientMap.get(patientId);
+    }
+
 
     /**
      * The main method for the DataStorage class.
@@ -88,16 +103,11 @@ public class DataStorage {
      */
     public static void main(String[] args) {
         // DataReader is not defined in this scope, should be initialized appropriately.
-         DataReader reader = new FileDataReader("path/to/data");
-        DataStorage storage = new DataStorage(reader);
+         //DataReader reader = new FileDataReader("path/to/data");
+        DataStorage storage = DataStorage.getInstance();
 
         // Assuming the reader has been properly initialized and can read data into the
         // storage
-        try{
-            reader.readData(storage);
-        } catch (IOException e){
-            e.printStackTrace();
-        }
 
         // Example of using DataStorage to retrieve and print records for a patient
         List<PatientRecord> records = storage.getRecords(1, 1700000000000L, 1800000000000L);
@@ -115,5 +125,8 @@ public class DataStorage {
         for (Patient patient : storage.getAllPatients()) {
             alertGenerator.evaluateData(patient);
         }
+    }
+        public List<PatientRecord> getPatientRecords(int patientId) {
+            return patientMap.get(patientId).getPatientRecords();
     }
 }

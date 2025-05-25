@@ -52,9 +52,9 @@ public class Patient {
      * @return a list of PatientRecord objects that fall within the specified time
      *         range
      */
-    public List<PatientRecord> getRecords(long startTime, long endTime) {
+    public ArrayList<PatientRecord> getRecords(long startTime, long endTime) {
         // TODO Implement and test this method
-        List<PatientRecord> filteredRecords = new ArrayList<>();
+        ArrayList<PatientRecord> filteredRecords = new ArrayList<>();
             for(PatientRecord record : patientRecords){
                 long timestamp = record.getTimestamp();
                 if(timestamp >= startTime && timestamp <= endTime){
@@ -67,8 +67,8 @@ public class Patient {
         return this.patientId;
     }
     
-    public List<PatientRecord> getRecordsLast(int count, String type) {
-        List<PatientRecord> filtered = new ArrayList<>();
+    public ArrayList<PatientRecord> getRecordsLast(int count, String type) {
+        ArrayList<PatientRecord> filtered = new ArrayList<>();
         for (int i = patientRecords.size() - 1; i >= 0; i--) {
             PatientRecord record = patientRecords.get(i);
             if (record.getRecordType().equalsIgnoreCase(type)) {
@@ -78,7 +78,7 @@ public class Patient {
                 }
             }
         }
-        List<PatientRecord> result = new ArrayList<>();
+        ArrayList<PatientRecord> result = new ArrayList<>();
         for (int i = filtered.size() - 1; i >= 0; i--) {
             result.add(filtered.get(i));
         }
@@ -95,4 +95,31 @@ public class Patient {
         }
         return latestRecord;
     }
+
+    public ArrayList<PatientRecord> getRecordsLastMinute( String recordType) {
+        
+        ArrayList<PatientRecord> lastRecords = new ArrayList<>();
+        if (patientRecords.size() == 0) {
+            return null;
+            
+        } else {
+            long timeNow = patientRecords.get(patientRecords.size()-1).getTimestamp();
+            return getRecords(timeNow-10000*60, timeNow);
+        }
+    }
+    public ArrayList<PatientRecord> getRecordsLastTenMinutes(String recordType) {
+        ArrayList<PatientRecord> lastRecords = new ArrayList<>();
+        if (patientRecords.size() == 0) {
+            return null;
+            
+        } else {
+            long timeNow = patientRecords.get(patientRecords.size()-1).getTimestamp();
+            return getRecords(timeNow-10*60*1000, timeNow);
+        }
+    }
+    public ArrayList<PatientRecord> getPatientRecords() {
+        return new ArrayList<> (patientRecords);
+    }
 }
+
+    

@@ -30,14 +30,28 @@ import java.util.ArrayList;
 
 public class HealthDataSimulator {
 
+    private static volatile HealthDataSimulator instance;
     private static int patientCount = 50; // Default number of patients
     private static ScheduledExecutorService scheduler;
     private static OutputStrategy outputStrategy = new ConsoleOutputStrategy(); // Default output strategy
     private static final Random random = new Random();
-    private static int shutdownAfterSeconds = 20;
 
+    public static HealthDataSimulator getInstance() {
+        if (instance == null) {
+            synchronized (HealthDataSimulator.class) {
+                if (instance == null) {
+                    instance = new HealthDataSimulator();
+                }
+            }
+        }
+        return instance;
+    }
     public static void main(String[] args) throws IOException {
+        HealthDataSimulator simulator = HealthDataSimulator.getInstance();
+        simulator.run(args);
+    }
 
+    private void run(String[] args) throws IOException {
         parseArguments(args);
 
         scheduler = Executors.newScheduledThreadPool(patientCount * 4);
@@ -46,24 +60,6 @@ public class HealthDataSimulator {
         Collections.shuffle(patientIds); // Randomize the order of patient IDs
 
         scheduleTasksForPatients(patientIds);
-
-        // Schedule shutdown after a certain time
-        Executors.newSingleThreadScheduledExecutor().schedule(() -> {
-            System.out.println("Stopping simulation after " + shutdownAfterSeconds + " seconds.");
-            scheduler.shutdown();
-            try {
-                if (!scheduler.awaitTermination(10, TimeUnit.SECONDS)) {
-                    System.out.println("Forcing shutdown...");
-                    scheduler.shutdownNow();
-                } else {
-                    System.out.println("Simulation ended.");
-                }
-            } catch (InterruptedException e) {
-                System.err.println("Shutdown interrupted. Forcing shutdown...");
-                scheduler.shutdownNow();
-                Thread.currentThread().interrupt();
-            }
-        }, shutdownAfterSeconds, TimeUnit.SECONDS);
     }
 
     private static void parseArguments(String[] args) throws IOException {
