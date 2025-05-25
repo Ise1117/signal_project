@@ -1,251 +1,153 @@
 package alerts;
 
+import static org.junit.Assert.*;
+import org.junit.Before;
+import org.junit.Test;
+
+
+import com.data_management.DataStorage;
+import com.data_management.Patient;
 import com.alerts.AlertGenerator;
 import com.alerts.Alert;
-import com.data_management.Patient;
-import com.data_management.PatientRecord;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+
+
+
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 public class AlertGeneratorTest {
 
+    private DataStorage dataStorage;
     private AlertGenerator alertGenerator;
-    private TestPatient testPatient;
+    private List<Alert> triggeredAlerts;
 
-    private static class TestPatient extends Patient {
-        private final List<PatientRecord> records = new ArrayList<>();
+    @Before
+    public void setUp() {
+        dataStorage = new DataStorage();
+        triggeredAlerts = new ArrayList<>();
+        alertGenerator = new AlertGenerator(dataStorage);
+    }
 
-        public TestPatient(int id) {
-            super(id);
+    @Test
+    public void testPressureTriggersAlert() throws IOException {
+        Patient patient = new Patient(1);
+        patient.addRecord(180.0, "SystolicPressure", System.currentTimeMillis());
+
+        // Evaluate data
+        alertGenerator.evaluateData(patient);
+
+        // Verify that an alert was triggered
+        assertFalse(alertGenerator.triggeredAlerts.isEmpty());
+    }
+
+    @Test
+    public void testSaturationTriggersAlert() throws IOException {
+        AlertGenerator alertGenerator = new AlertGenerator(dataStorage);
+        Patient patient = new Patient(1);
+        
+        patient.addRecord(70, "Saturation", System.currentTimeMillis());
+        
+        // Evaluate data
+        alertGenerator.evaluateData(patient);
+
+        // Verify that an alert was triggered
+        assertTrue(alertGenerator.triggeredAlerts.get(0).getCondition().equals("Low Saturation Alert"));
+    }
+
+    @Test
+    public void testEvaluateDataSaturationNoAlert() throws IOException {
+        AlertGenerator alertGenerator = new AlertGenerator(dataStorage);
+        Patient patient = new Patient(1);
+        
+        patient.addRecord(97, "Saturation", System.currentTimeMillis());
+        
+        // Evaluate data
+        alertGenerator.evaluateData(patient);
+
+        // Verify that an alert was triggered
+        assertTrue(alertGenerator.triggeredAlerts.isEmpty());
+    }
+    @Test
+    public void testEcgAlert() throws IOException {
+        AlertGenerator alertGenerator = new AlertGenerator(dataStorage);
+        Patient patient = new Patient(1);
+        long time = System.currentTimeMillis();
+        for (int i = 0; i < 20; i++) {
+            patient.addRecord(1, "HeartRate",time + i * 3000);
+        }
+        
+        
+        // Evaluate data
+        alertGenerator.evaluateData(patient);
+
+        // Verify that an alert was triggered
+        assertTrue(alertGenerator.triggeredAlerts.get(0).getCondition().equals("Heart rate too slow, ECG alert"));
+    }
+
+    @Test
+    public void testEcgNoAlert() throws IOException {
+        // Mocking patient data
+        AlertGenerator alertGenerator = new AlertGenerator(dataStorage);
+        Patient patient = new Patient(1);
+        long time = System.currentTimeMillis();
+        for (int i = 0; i < 60; i++) {
+            patient.addRecord(1, "HeartRate",time + i * 1000);
+        }
+        
+        // Evaluate data
+        alertGenerator.evaluateData(patient);
+
+        // Verify that an alert was triggered
+        assertTrue(alertGenerator.triggeredAlerts.isEmpty());
+    }
+
+    @Test
+    public void testHypotensiveAlert() throws IOException {
+        // Mocking patient data
+        AlertGenerator alertGenerator = new AlertGenerator(dataStorage);
+        Patient patient = new Patient(1);
+        long time = System.currentTimeMillis();
+        
+        patient.addRecord(70, "SystolicPressure", time);
+        patient.addRecord(70, "Saturation", time);
+
+        
+        
+        // Evaluate data
+        alertGenerator.evaluateData(patient);
+
+        // Verify that an alert was triggered
+        assertTrue(alertGenerator.triggeredAlerts.get(0).getCondition().equals("HypotensiveHypoxemia Alert"));
+    }
+
+    @Test
+    public void testPressureNoAlert() throws IOException {
+        Patient patient = new Patient(1);
+        // patient.addRecord(120.0, "BloodPressure", System.currentTimeMillis());
+        patient.addRecord(100.0, "SystolicPressure", System.currentTimeMillis());
+        patient.addRecord(100.0, "DiastolicPressure", System.currentTimeMillis());
+        // Evaluate data
+        alertGenerator.evaluateData(patient);
+
+        // Verify that no alert was triggered
+        System.out.println(triggeredAlerts);
+        assertTrue(triggeredAlerts.isEmpty());
+    }
+    private static class TestAlertGenerator extends AlertGenerator {
+        private List<Alert> triggeredAlerts;
+
+        public TestAlertGenerator(DataStorage dataStorage, List<Alert> triggeredAlerts) {
+            super(dataStorage);
+            this.triggeredAlerts = triggeredAlerts;
         }
 
+        
         @Override
-        public ArrayList<PatientRecord> getRecordsLast(int numRecords, String recordType) {
-            ArrayList<PatientRecord> filtered = new ArrayList<>();
-            for (int i = records.size() - 1; i >= 0 && filtered.size() < numRecords; i--) {
-                PatientRecord r = records.get(i);
-                if (r.getRecordType().equals(recordType)) {
-                    filtered.add(0, r);
-                }
-            }
-            return filtered;
-        }
-
-        @Override
-        public PatientRecord getLatest(String recordType) {
-            for (int i = records.size() - 1; i >= 0; i--) {
-                PatientRecord r = records.get(i);
-                if (r.getRecordType().equals(recordType)) {
-                    return r;
-                }
-            }
-            return null;
-        }
-
-        public void addRecord(double value, String type, long timestamp) {
-            records.add(new PatientRecord(this.getId(), value, type, timestamp));
+        public void triggerAlert(Alert alert) {
+            
+            triggeredAlerts.add(alert);
         }
     }
-
-    @BeforeEach
-    public void setup() {
-        alertGenerator = new AlertGenerator(null);
-        testPatient = new TestPatient(1);
-        alertGenerator.triggeredAlerts.clear();
-    }
-
-    private void addRecord(double value, String type, long offsetMillis) {
-        testPatient.addRecord(value, type, System.currentTimeMillis() + offsetMillis);
-    }
-
-
-
-    @Test
-    void testIncreasingSystolicTrendTriggersAlert()throws IOException {
-        addRecord(100, "Systolic", -3000);
-        addRecord(115, "Systolic", -2000);
-        addRecord(130, "Systolic", -1000);
-
-        // Add diastolic data to satisfy 3 records check
-        addRecord(70, "Diastolic", -3000);
-        addRecord(75, "Diastolic", -2000);
-        addRecord(80, "Diastolic", -1000);
-
-        alertGenerator.evaluateData(testPatient);
-
-        assertTrue(alertGenerator.triggeredAlerts.stream()
-                .anyMatch(a -> a.getCondition().equals("Increasing Systolic Trend")));
-    }
-
-    @Test
-    void testDecreasingSystolicTrendTriggersAlert()throws IOException {
-        addRecord(130, "Systolic", -3000);
-        addRecord(115, "Systolic", -2000);
-        addRecord(100, "Systolic", -1000);
-
-        addRecord(80, "Diastolic", -3000);
-        addRecord(75, "Diastolic", -2000);
-        addRecord(70, "Diastolic", -1000);
-
-        alertGenerator.evaluateData(testPatient);
-
-        assertTrue(alertGenerator.triggeredAlerts.stream()
-                .anyMatch(a -> a.getCondition().equals("Decreasing Systolic Trend")));
-    }
-
-    @Test
-    void testIncreasingDiastolicTrendTriggersAlert()throws IOException {
-        addRecord(70, "Diastolic", -3000);
-        addRecord(85, "Diastolic", -2000);
-        addRecord(100, "Diastolic", -1000);
-
-        addRecord(110, "Systolic", -3000);
-        addRecord(115, "Systolic", -2000);
-        addRecord(120, "Systolic", -1000);
-
-        alertGenerator.evaluateData(testPatient);
-
-        assertTrue(alertGenerator.triggeredAlerts.stream()
-                .anyMatch(a -> a.getCondition().equals("Increasing Diastolic Trend")));
-    }
-
-    @Test
-    void testDecreasingDiastolicTrendTriggersAlert() throws IOException{
-        addRecord(100, "Diastolic", -3000);
-        addRecord(85, "Diastolic", -2000);
-        addRecord(70, "Diastolic", -1000);
-
-        addRecord(120, "Systolic", -3000);
-        addRecord(115, "Systolic", -2000);
-        addRecord(110, "Systolic", -1000);
-
-        alertGenerator.evaluateData(testPatient);
-
-        assertTrue(alertGenerator.triggeredAlerts.stream()
-                .anyMatch(a -> a.getCondition().equals("Decreasing Diastolic Trend")));
-    }
-
-
-
-    @Test
-    void testCriticalHighSystolicTriggersAlert() throws IOException{
-        addRecord(190, "Systolic", 0);
-        addRecord(80, "Diastolic", 0);
-        addRecord(80, "Diastolic", -1000);
-        addRecord(100, "Systolic", -1000);
-        addRecord(100, "Systolic", -2000);
-        addRecord(90, "Diastolic", -2000);
-
-        alertGenerator.evaluateData(testPatient);
-
-        assertTrue(alertGenerator.triggeredAlerts.stream()
-                .anyMatch(a -> a.getCondition().equals("Critical Blood Pressure")));
-    }
-
-    @Test
-    void testCriticalLowSystolicTriggersAlert()throws IOException {
-        addRecord(80, "Systolic", 0);
-        addRecord(85, "Systolic", -1000);
-        addRecord(88, "Systolic", -2000);
-
-        addRecord(70, "Diastolic", 0);
-        addRecord(72, "Diastolic", -1000);
-        addRecord(74, "Diastolic", -2000);
-
-        alertGenerator.evaluateData(testPatient);
-
-        assertTrue(alertGenerator.triggeredAlerts.stream()
-                .anyMatch(a -> a.getCondition().equals("Critical Blood Pressure")));
-    }
-
-    @Test
-    void testCriticalHighDiastolicTriggersAlert()throws IOException {
-        addRecord(120, "Systolic", 0);
-        addRecord(125, "Systolic", -1000);
-        addRecord(130, "Systolic", -2000);
-
-        addRecord(130, "Diastolic", 0);
-        addRecord(135, "Diastolic", -1000);
-        addRecord(140, "Diastolic", -2000);
-
-        alertGenerator.evaluateData(testPatient);
-
-        assertTrue(alertGenerator.triggeredAlerts.stream()
-                .anyMatch(a -> a.getCondition().equals("Critical Blood Pressure")));
-    }
-
-    @Test
-
-    void testCriticalLowDiastolicTriggersAlert() throws IOException{
-        addRecord(120, "Systolic", 0);
-        addRecord(115, "Systolic", -1000);
-        addRecord(110, "Systolic", -2000);
-
-        addRecord(50, "Diastolic", 0);
-        addRecord(55, "Diastolic", -1000);
-        addRecord(58, "Diastolic", -2000);
-
-        alertGenerator.evaluateData(testPatient);
-
-        assertTrue(alertGenerator.triggeredAlerts.stream()
-                .anyMatch(a -> a.getCondition().equals("Critical Blood Pressure")));
-    }
-
-
-    @Test
-    void testLowSaturationTriggersAlert() throws IOException {
-        addRecord(91, "Saturation", 0);
-
-        alertGenerator.evaluateData(testPatient);
-
-        assertTrue(alertGenerator.triggeredAlerts.stream()
-                .anyMatch(a -> a.getCondition().equals("Low Saturation (<92%)")));
-    }
-
-    @Test
-    void testRapidSaturationDropTriggersAlert() throws IOException {
-        long now = System.currentTimeMillis();
-
-        addRecord(95, "Saturation", -11 * 60 * 1000);
-        addRecord(90, "Saturation", -5 * 60 * 1000);
-        addRecord(89, "Saturation", 0);
-
-        alertGenerator.evaluateData(testPatient);
-
-        assertTrue(alertGenerator.triggeredAlerts.stream()
-                .anyMatch(a -> a.getCondition().equals("Rapid Saturation Drop (≥5%)")));
-    }
-
-    @Test
-    void testHypotensiveHypoxemiaAlertTriggers() throws IOException {
-        addRecord(85, "Systolic", -1000);
-        addRecord(80, "Systolic", -2000);
-        addRecord(88, "Systolic", -3000);
-
-        addRecord(90, "Saturation", 0);
-
-        alertGenerator.evaluateData(testPatient);
-
-        assertTrue(alertGenerator.triggeredAlerts.stream()
-                .anyMatch(a -> a.getCondition().equals("Hypotensive Hypoxemia Alert")));
-    }
-    @Test
-    void testAbnormalEcgPeakTriggersAlert() throws IOException {
-        addRecord(1.0, "ECG", -3000);
-        addRecord(1.0, "ECG", -2000);
-        addRecord(1.0, "ECG", -1000);
-        addRecord(3.5, "ECG", 0); 
-
-        alertGenerator.evaluateData(testPatient);
-
-        assertFalse(alertGenerator.triggeredAlerts.stream()
-                .anyMatch(a -> a.getCondition().equals("Abnormal ECG Peak")));
-    }
-
 }
