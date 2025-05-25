@@ -236,11 +236,11 @@ public class AlertGeneratorTest {
                 .anyMatch(a -> a.getCondition().equals("Hypotensive Hypoxemia Alert")));
     }
     @Test
-    void testAbnormalEcgPeakTriggersAlert() {
+    void testAbnormalEcgPeakTriggersAlert() throws IOException {
         addRecord(1.0, "ECG", -3000);
         addRecord(1.0, "ECG", -2000);
         addRecord(1.0, "ECG", -1000);
-        addRecord(3.5, "ECG", 0);  // latest, should trigger
+        addRecord(3.5, "ECG", 0); 
 
         alertGenerator.evaluateData(testPatient);
 
