@@ -1,5 +1,6 @@
 package com.data_management;
 
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -61,5 +62,37 @@ public class Patient {
                 }
             }
             return filteredRecords;
+    }
+    public int getId() {
+        return this.patientId;
+    }
+    
+    public List<PatientRecord> getRecordsLast(int count, String type) {
+        List<PatientRecord> filtered = new ArrayList<>();
+        for (int i = patientRecords.size() - 1; i >= 0; i--) {
+            PatientRecord record = patientRecords.get(i);
+            if (record.getRecordType().equalsIgnoreCase(type)) {
+                filtered.add(record);
+                if (filtered.size() == count) {
+                    break;
+                }
+            }
+        }
+        List<PatientRecord> result = new ArrayList<>();
+        for (int i = filtered.size() - 1; i >= 0; i--) {
+            result.add(filtered.get(i));
+        }
+        return result;
+    }
+    public PatientRecord getLatest(String recordType) {
+        PatientRecord latestRecord = null;
+        for (PatientRecord record : patientRecords) {
+            if (record.getRecordType().equalsIgnoreCase(recordType)) {
+                if (latestRecord == null || record.getTimestamp() > latestRecord.getTimestamp()) {
+                    latestRecord = record;
+                }
+            }
+        }
+        return latestRecord;
     }
 }
