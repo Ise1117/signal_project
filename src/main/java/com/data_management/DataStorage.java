@@ -88,7 +88,7 @@ public class DataStorage {
     public List<Patient> getAllPatients() {
         return new ArrayList<>(patientMap.values());
     }
-    
+
     public Patient getPatient(int patientId) {
         return patientMap.get(patientId);
     }
@@ -101,7 +101,7 @@ public class DataStorage {
      * 
      * @param args command line arguments
      */
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException{
         // DataReader is not defined in this scope, should be initialized appropriately.
          //DataReader reader = new FileDataReader("path/to/data");
         DataStorage storage = DataStorage.getInstance();
