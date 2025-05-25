@@ -46,9 +46,9 @@ public class AlertGeneratorTest {
     public void testSaturationTriggersAlert() throws IOException {
         AlertGenerator alertGenerator = new AlertGenerator(dataStorage);
         Patient patient = new Patient(1);
-        
+
         patient.addRecord(70, "Saturation", System.currentTimeMillis());
-        
+
         // Evaluate data
         alertGenerator.evaluateData(patient);
 
@@ -60,9 +60,9 @@ public class AlertGeneratorTest {
     public void testEvaluateDataSaturationNoAlert() throws IOException {
         AlertGenerator alertGenerator = new AlertGenerator(dataStorage);
         Patient patient = new Patient(1);
-        
+
         patient.addRecord(97, "Saturation", System.currentTimeMillis());
-        
+
         // Evaluate data
         alertGenerator.evaluateData(patient);
 
@@ -77,8 +77,8 @@ public class AlertGeneratorTest {
         for (int i = 0; i < 20; i++) {
             patient.addRecord(1, "HeartRate",time + i * 3000);
         }
-        
-        
+
+
         // Evaluate data
         alertGenerator.evaluateData(patient);
 
@@ -95,7 +95,7 @@ public class AlertGeneratorTest {
         for (int i = 0; i < 60; i++) {
             patient.addRecord(1, "HeartRate",time + i * 1000);
         }
-        
+
         // Evaluate data
         alertGenerator.evaluateData(patient);
 
@@ -109,12 +109,12 @@ public class AlertGeneratorTest {
         AlertGenerator alertGenerator = new AlertGenerator(dataStorage);
         Patient patient = new Patient(1);
         long time = System.currentTimeMillis();
-        
+
         patient.addRecord(70, "SystolicPressure", time);
         patient.addRecord(70, "Saturation", time);
 
-        
-        
+
+
         // Evaluate data
         alertGenerator.evaluateData(patient);
 
@@ -143,10 +143,10 @@ public class AlertGeneratorTest {
             this.triggeredAlerts = triggeredAlerts;
         }
 
-        
+
         @Override
         public void triggerAlert(Alert alert) {
-            
+
             triggeredAlerts.add(alert);
         }
     }
