@@ -40,8 +40,8 @@ class DataStorageTest {
         Answer<Void> answer = invocation -> {
             DataStorage dataStorage = invocation.getArgument(0);
             for (PatientRecord record : mockRecords) {
-                dataStorage.addPatientData(record.getPatientId(), record.getMeasurementValue(), 
-                    record.getRecordType(), record.getTimestamp());
+                dataStorage.addPatientData(record.getPatientId(), record.getMeasurementValue(),
+                        record.getRecordType(), record.getTimestamp());
             }
             return null;
         };
